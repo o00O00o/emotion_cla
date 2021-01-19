@@ -1,8 +1,7 @@
-import re
 import torch
 import spacy
 import gensim
-from utils import get_corpus_text
+from utils import get_corpus_text, get_data
 from torch.utils.data import Dataset
 
 
@@ -62,35 +61,33 @@ class Vocabulary:
 
 
 class TextDataset(Dataset):
-    def __init__(self, vocab, root_dir):
-        self.sentences = []
-        self.labels = []
-        data_file = open(root_dir)
-        lines = data_file.readlines()
-        for line in lines:
-            self.labels.append(int(line[0]))
-            sentence = re.sub(r"[^A-Za-z’]", " ", line[10:])
-            sentence = re.sub(r" +", " ", sentence)
-            self.sentences.append(sentence)
-        data_file.close()
-
+    def __init__(self, vocab, root_dir, isTrain=True):
+        if isTrain:
+            self.sentences, self.labels = get_data(root_dir, isLabeled=True)
+        else:
+            self.sentences = get_data(root_dir, isTest=True)
         self.vocab = vocab
+        self.isTrain = isTrain
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.sentences)
 
     def __getitem__(self, index):
         sentence = self.sentences[index]
-        label = self.labels[index]
+        if self.isTrain:
+            label = self.labels[index]
         numericalized_sentence = [self.vocab.stoi["<SOS>"]]
         numericalized_sentence += self.vocab.numericalize(sentence)
         numericalized_sentence.append(self.vocab.stoi["<EOS>"])
-        return torch.tensor(numericalized_sentence), torch.tensor(label)
+
+        if self.isTrain:
+            return torch.tensor(numericalized_sentence), torch.tensor(label)
+        else:
+            return torch.tensor(numericalized_sentence)
 
 
 if __name__ == "__main__":
-    # vocab = Vocabulary("/Users/gaoyibo/Datasets/ml2020spring-hw4/")
-    # vocab.build_vocabulary()
-    # word_embedding_weight = vocab.get_wv()
-    # torch.save(word_embedding_weight, './word_embedding_weight.pth')
-    print("---------------------------")
+    vocab = Vocabulary("/Users/gaoyibo/Datasets/ml2020spring-hw4/")
+    vocab.build_vocabulary()
+    word_embedding_weight = vocab.get_wv()
+    torch.save(word_embedding_weight, './word_embedding_weight.pth')

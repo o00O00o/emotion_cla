@@ -2,9 +2,13 @@ import torch.nn as nn
 
 
 class RNN_Model(nn.Module):
-    def __init__(self, args, word_embedding_weight):
+    def __init__(self, args, word_embedding_weight=None):
         super(RNN_Model, self).__init__()
-        self.embedding = nn.Embedding.from_pretrained(word_embedding_weight, freeze=False)
+        if word_embedding_weight is None:
+            self.embedding = nn.Embedding(args.dict_size, args.embedding_dim)
+        else:
+            self.embedding = nn.Embedding.from_pretrained(word_embedding_weight, freeze=False)
+
         self.lstm = nn.LSTM(args.embedding_dim, args.hidden_dim, args.num_layers, bidirectional=True, batch_first=True, dropout=args.dropout)
         self.fc = nn.Linear(args.hidden_dim * 2, args.num_classes)
         self.sigmoid = nn.Sigmoid()

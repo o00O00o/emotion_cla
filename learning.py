@@ -16,6 +16,12 @@ def train(args, model, dataloader, criterion, optimizer):
             optimizer.step()
             if idx % 1000 == 0:
                 true = label.data.cpu()
-                predic = torch.max(output.data, 1)[1].cpu()
-                train_acc = metrics.accuracy_score(true, predic)
+                predict = torch.gt(output.data, 0.5)
+                train_acc = metrics.accuracy_score(true, predict)
                 print(train_acc)
+
+        checkpoint = {
+            "state_dict": model.state_dict(),
+            "optimizer": optimizer.state_dict()
+        }
+        torch.save(checkpoint, 'my_checkpoint.pth.tar')

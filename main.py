@@ -1,10 +1,11 @@
 import torch
 import argparse
-from learning import train
+import numpy as np
+from learning import train, validate
 import torch.nn as nn
 import torch.optim as optim
 from data_process import TextDataset, Vocabulary
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from utils import PadCollate
 from model import RNN_Model
 
@@ -22,6 +23,7 @@ def parse_args():
     parser.add_argument('--embedding_dim', default=300, type=int)
     parser.add_argument('--num_classes', default=1, type=int)
     parser.add_argument('--isTrain', default=True, type=bool)
+    parser.add_argument('--train_size', default=0.01, type=float)
     return parser.parse_args()
 
 
@@ -31,16 +33,29 @@ def main(args):
 
     vocab = Vocabulary(args.root_dir)
     vocab.build_vocabulary()
-    word_embedding_weight = torch.load('./word_embedding_weight.pth')
+    word_embedding_weight = torch.from_numpy(np.load('./word_embedding_weight.npy'))
 
-    train_dataset = TextDataset(vocab, args.root_dir, args.isTrain)
+    text_dataset = TextDataset(vocab, args.root_dir, args.isTrain)
+
+    train_size = int(args.train_size * len(text_dataset))
+    test_size = len(text_dataset) - train_size
+
+    train_dataset, val_dataset = random_split(text_dataset, [train_size, test_size])
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=True, collate_fn=PadCollate(args.batch_size, args.isTrain))
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2, pin_memory=True, collate_fn=PadCollate(args.batch_size, args.isTrain))
 
     model = RNN_Model(args, word_embedding_weight).to(args.device)
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    train(args, model, train_loader, criterion, optimizer)
+    for epoch in range(args.epoch):
+        train(args, model, train_loader, criterion, optimizer)
+        validate(args, model, val_loader, criterion)
+        checkpoint = {
+            "state_dict": model.state_dict(),
+            "optimizer": optimizer.state_dict()
+        }
+        torch.save(checkpoint, 'my_checkpoint.pth.tar')
 
 
 if __name__ == "__main__":

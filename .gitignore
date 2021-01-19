@@ -1,5 +1,5 @@
 __pycache__
-word_embedding_weight.pth
+word_embedding_weight.npy
 my_checkpoint.pth.tar
 predict.csv
 

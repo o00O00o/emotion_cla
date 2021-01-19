@@ -1,6 +1,7 @@
 import torch
 import spacy
 import gensim
+import numpy as np
 from utils import get_corpus_text, get_data
 from torch.utils.data import Dataset
 
@@ -90,4 +91,6 @@ if __name__ == "__main__":
     vocab = Vocabulary("/Users/gaoyibo/Datasets/ml2020spring-hw4/")
     vocab.build_vocabulary()
     word_embedding_weight = vocab.get_wv()
-    torch.save(word_embedding_weight, './word_embedding_weight.pth')
+    word_embedding_weight = word_embedding_weight.numpy()
+    np.save('./word_embedding_weight.npy', word_embedding_weight)
+    # torch.save(word_embedding_weight, './word_embedding_weight.pth')
